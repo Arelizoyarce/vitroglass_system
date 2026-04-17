@@ -1,7 +1,7 @@
 import { Box, Typography, TextField, Stack } from '@mui/material';
 
 const QuoteInfo = () => (
-  <Box sx={{ mb: 4 }}>
+  <Box sx={{ mb: 4, textAlign: 'left'}}>
     <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '16px' }}>Información de cotización</Typography>
     <Typography variant="caption" color="textSecondary" sx={{ mb: 2, display: 'block' }}>
       Ingresa la información requerida

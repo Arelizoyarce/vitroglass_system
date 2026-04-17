@@ -18,8 +18,8 @@ const statusColors = {
 };
 
 const rows = [
-  { id: 'MGL524874', cliente: 'Konecta SAC', entrega: '14 Apr 2022', hora: '8:00 PM', items: 20, total: '420.84', estado: 'En proceso' },
-  { id: 'MGL524250', cliente: 'Galería San Miguel', entrega: '12 Apr 2022', hora: '8:00 PM', items: 1, total: '244.80', estado: 'Completado' },
+  { id: 'MGL524874', cliente: 'Areliz Oyarce', entrega: '14 Abr 2022', hora: '8:00 PM', items: 20, total: '420.84', estado: 'En proceso' },
+  { id: 'MGL524250', cliente: 'Galería San Miguel', entrega: '12 Abr 2022', hora: '8:00 PM', items: 1, total: '244.80', estado: 'Completado' },
 ];
 
 const OrdersTable = () => {

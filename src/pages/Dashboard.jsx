@@ -6,15 +6,16 @@ import OrdersTable from 'src/components/OrdersTable';
 const Dashboard = () => {
   return (
     <Box sx={{ width: '100%', maxWidth: '1200px', margin: '0 auto' }}>
-      {/* Header Superior */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 4 }}>
+     
+      <Stack direction="row" alignItems="center" sx={{ mb: 4, justifyContent: 'space-between' }}>
+        <Box>
         <Typography variant="h4" sx={{ fontWeight: 700, color: '#1a1a1a' }}>
           Pedidos
         </Typography>
+        </Box>
         <UserMenu />
       </Stack>
 
-      {/* Contenido Blanco (Card de la tabla) */}
       <Box sx={{ 
         bgcolor: '#fff', 
         borderRadius: '24px', 
