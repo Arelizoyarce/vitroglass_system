@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { 
   Drawer, 
   List, 
@@ -9,21 +9,44 @@ import {
   Box, 
   Typography 
 } from '@mui/material';
+
+import { useNavigate } from 'react-router-dom';
+
 import { 
   MenuBook as PedidosIcon, 
   Settings as SettingsIcon, 
   ExitToApp as LogoutIcon 
 } from '@mui/icons-material';
 
+import { AuthContext } from '../context/AuthContext';
+
 const drawerWidth = 260;
 
 const Sidebar = () => {
   const [activeItem, setActiveItem] = useState('Pedidos');
+  const navigate = useNavigate();
+
+  const { logoutUser } = useContext(AuthContext);
 
   const menuItems = [
-    { text: 'Pedidos', icon: <PedidosIcon /> },
-    { text: 'Configuraciones', icon: <SettingsIcon /> },
+    { text: 'Pedidos', icon: <PedidosIcon />, path: '/pedidos' },
+    { text: 'Configuraciones', icon: <SettingsIcon />, path: '/configuraciones' },
   ];
+
+  const handleLogout = () => {
+    console.log("🚪 Cerrando sesión...");
+
+    logoutUser();
+
+    navigate("/");
+
+    console.log("➡️ Redirigido a login");
+  };
+
+  const handleNavigate = (item) => {
+    setActiveItem(item.text);
+    navigate(item.path);
+  };
 
   return (
     <Drawer
@@ -62,20 +85,18 @@ const Sidebar = () => {
           </Typography>
         </Box>
 
-        {/* Lista de Navegación */}
-        <List sx={{ pt: 0 }}>
+        {/* MENU */}
+        <List>
           {menuItems.map((item) => {
             const isActive = activeItem === item.text;
+
             return (
               <ListItem key={item.text} disablePadding sx={{ mb: 1 }}>
                 <ListItemButton
-                  onClick={() => setActiveItem(item.text)}
+                  onClick={() => handleNavigate(item)}
                   sx={{
                     borderRadius: '12px',
-                    backgroundColor: isActive ? '#D4E157' : 'transparent', // Color Lima
-                    '&:hover': {
-                      backgroundColor: isActive ? '#C5D14B' : '#f5f5f5',
-                    },
+                    backgroundColor: isActive ? '#D4E157' : 'transparent',
                     color: isActive ? '#000' : '#9ea3ac',
                     py: 1.5
                   }}
@@ -83,10 +104,8 @@ const Sidebar = () => {
                   <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>
                     {item.icon}
                   </ListItemIcon>
-                  <ListItemText 
-                    primary={item.text} 
-                    primaryTypographyProps={{ fontWeight: isActive ? 600 : 500 }}
-                  />
+
+                  <ListItemText primary={item.text} />
                 </ListItemButton>
               </ListItem>
             );
@@ -94,14 +113,24 @@ const Sidebar = () => {
         </List>
       </Box>
 
-      {/* Botón Logout al final */}
+      {/* LOGOUT */}
       <Box>
         <List>
           <ListItem disablePadding>
-            <ListItemButton sx={{ color: '#9ea3ac', borderRadius: '12px' }}>
+            <ListItemButton
+              onClick={handleLogout}
+              sx={{
+                color: '#9ea3ac',
+                borderRadius: '12px',
+                '&:hover': {
+                  backgroundColor: '#f5f5f5'
+                }
+              }}
+            >
               <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>
                 <LogoutIcon />
               </ListItemIcon>
+
               <ListItemText primary="Logout" />
             </ListItemButton>
           </ListItem>
