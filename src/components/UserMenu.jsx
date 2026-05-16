@@ -11,7 +11,7 @@ const UserMenu = () => (
     borderRadius: '50px' 
   }}>
     <Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#333' }}>
-      Carlo Sanchez
+      
     </Typography>
     <KeyboardArrowDownIcon sx={{ fontSize: 18, color: '#666' }} />
   </Box>

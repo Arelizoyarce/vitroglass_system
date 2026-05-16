@@ -1,141 +1,241 @@
-// OrderDetails.jsx
-import { DeleteOutlineOutlined } from '@mui/icons-material';
-import { Box, Typography, Stack, TextField, Select, MenuItem, IconButton } from '@mui/material';
+import { DeleteOutlineOutlined, Add } from '@mui/icons-material';
+import {
+  Box,
+  Typography,
+  Stack,
+  TextField,
+  Select,
+  MenuItem,
+  IconButton,
+  Button
+} from '@mui/material';
 
+/* =========================
+   CALCULO SUBTOTAL
+========================= */
 
-const GLASS_TYPES = [
-  { value: 'templado', label: 'Templado' },
-  { value: 'laminado', label: 'Laminado' },
-  { value: 'crudo', label: 'Crudo' },
-  { value: 'esmerilado', label: 'Esmerilado' },
-  { value: 'reflectivo', label: 'Reflectivo' },
-  { value: 'insulado', label: 'Insulado' },
-  { value: 'curvo', label: 'Curvo' },
-];
+const cmToM = (v) => (Number(v) || 0) / 100;
+const calcularSubtotal = (precio, ancho, alto, cantidad) => {
+  const areaM2 =
+    cmToM(ancho) * cmToM(alto);
 
-const PRICE_PER_CM2 = {
-  templado: 0.08,
-  laminado: 0.10,
-  crudo: 0.04,
-  esmerilado: 0.09,
-  reflectivo: 0.12,
-  insulado: 0.15,
-  curvo: 0.18,
+  return areaM2 * (Number(precio) || 0) * (Number(cantidad) || 0);
 };
 
-export const calcularPrecio = (tipo, alto, ancho, cantidad) => {
-  const rate = PRICE_PER_CM2[tipo] || 0;
-  const area = (parseFloat(alto) || 0) * (parseFloat(ancho) || 0);
-  return +(rate * area * (parseInt(cantidad) || 1)).toFixed(2);
-};
+/* =========================
+   ITEM
+========================= */
+const OrderItem = ({
+  item,
+  tiposVidrio,
+  onChange,
+  onDelete,
+  disabled
+}) => {
 
-const fieldSx = {
-  '& .MuiOutlinedInput-root': {
-    borderRadius: '12px',
-    bgcolor: '#fff',
-  },
-};
-
-const OrderItem = ({ item, onChange, onDelete, showDelete }) => {
   const handleChange = (field, value) => {
-    const updated = { ...item, [field]: value };
-    if (['tipo', 'alto', 'ancho', 'cantidad'].includes(field)) {
-      updated.precio = calcularPrecio(updated.tipo, updated.alto, updated.ancho, updated.cantidad);
+    if (disabled) return;
+
+    let updated = { ...item, [field]: value };
+
+    // si cambia tipo vidrio
+    if (field === 'idTipoVidrio') {
+      const vidrio = tiposVidrio.find(
+        (g) => g.idTipoVidrio === Number(value)
+      );
+
+      updated.precioUnitario = vidrio?.precioMetroCuadrado || 0;
     }
+
+updated.subtotal = calcularSubtotal(
+  updated.precioUnitario,
+  updated.ancho,
+  updated.alto,
+  updated.cantidad
+);
     onChange(updated);
   };
 
   return (
-    <Stack direction="row" spacing={2} alignItems="flex-end" sx={{ mb: 2.5 }}>
+    <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+
+      {/* TIPO */}
       <Box sx={{ flex: 2 }}>
-        <Typography variant="caption" sx={{ color: '#999', display: 'block', mb: 0.5 }}>Item</Typography>
+        <Typography variant="caption">Tipo</Typography>
+
         <Select
           fullWidth
-          displayEmpty
-          value={item.tipo}
-          onChange={(e) => handleChange('tipo', e.target.value)}
-          sx={{ borderRadius: '12px', bgcolor: '#fff' }}
-          renderValue={(val) =>
-            val
-              ? GLASS_TYPES.find((g) => g.value === val)?.label
-              : <span style={{ color: '#bbb' }}>Selecciona tipo</span>
+          value={item.idTipoVidrio || ''}
+          disabled={disabled}
+          onChange={(e) =>
+            handleChange('idTipoVidrio', e.target.value)
           }
         >
-          {GLASS_TYPES.map((g) => (
-            <MenuItem key={g.value} value={g.value}>{g.label}</MenuItem>
+          {tiposVidrio.map((g) => (
+            <MenuItem key={g.idTipoVidrio} value={g.idTipoVidrio}>
+              {g.nombre}
+            </MenuItem>
           ))}
         </Select>
       </Box>
 
+      {/* CANTIDAD */}
       <Box sx={{ flex: 1 }}>
-        <Typography variant="caption" sx={{ color: '#999', display: 'block', mb: 0.5 }}>Cantidad</Typography>
-        <TextField fullWidth placeholder="01" value={item.cantidad}
-          onChange={(e) => handleChange('cantidad', e.target.value)} sx={fieldSx} />
+        <Typography variant="caption">Cantidad</Typography>
+
+        <TextField
+          fullWidth
+          value={item.cantidad}
+          disabled={disabled}
+          onChange={(e) =>
+            handleChange('cantidad', e.target.value)
+          }
+        />
       </Box>
 
+      {/* ALTO */}
       <Box sx={{ flex: 1 }}>
-        <Typography variant="caption" sx={{ color: '#999', display: 'block', mb: 0.5 }}>Alto (cm)</Typography>
-        <TextField fullWidth placeholder="0" value={item.alto}
-          onChange={(e) => handleChange('alto', e.target.value)} sx={fieldSx} />
+        <Typography variant="caption">Alto</Typography>
+
+        <TextField
+          fullWidth
+          value={item.alto}
+          disabled={disabled}
+          onChange={(e) =>
+            handleChange('alto', e.target.value)
+          }
+        />
       </Box>
 
+      {/* ANCHO */}
       <Box sx={{ flex: 1 }}>
-        <Typography variant="caption" sx={{ color: '#999', display: 'block', mb: 0.5 }}>Ancho (cm)</Typography>
-        <TextField fullWidth placeholder="0" value={item.ancho}
-          onChange={(e) => handleChange('ancho', e.target.value)} sx={fieldSx} />
+        <Typography variant="caption">Ancho</Typography>
+
+        <TextField
+          fullWidth
+          value={item.ancho}
+          disabled={disabled}
+          onChange={(e) =>
+            handleChange('ancho', e.target.value)
+          }
+        />
       </Box>
 
+      {/* SUBTOTAL */}
       <Box sx={{ flex: 1 }}>
-        <Typography variant="caption" sx={{ color: '#999', display: 'block', mb: 0.5 }}>Precio (S/)</Typography>
-        <Box sx={{
-          bgcolor: '#f0f0f0',
-          borderRadius: '12px',
-          height: '56px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontWeight: 700,
-          fontSize: '0.95rem',
-        }}>
-          {item.precio > 0 ? item.precio.toFixed(2) : '—'}
+        <Typography variant="caption">Subtotal</Typography>
+
+        <Box
+          sx={{
+            height: 56,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            bgcolor: '#f5f5f5',
+            borderRadius: 2,
+            fontWeight: 600
+          }}
+        >
+          S/ {(item.subtotal || 0).toFixed(2)}
         </Box>
       </Box>
 
-      <Box sx={{ pb: 0.5 }}>
-        <IconButton
-          onClick={onDelete}
-          disabled={!showDelete}
-          size="small"
-          sx={{
-            color: showDelete ? '#e53e3e' : 'transparent',
-            bgcolor: showDelete ? '#fff5f5' : 'transparent',
-            border: showDelete ? '1px solid #fed7d7' : '1px solid transparent',
-            borderRadius: '10px',
-            width: 40,
-            height: 56,
-            transition: 'all 0.15s',
-            '&:hover': { bgcolor: '#fee2e2' },
-          }}
-        >
-          <DeleteOutlineOutlined fontSize="small" />
-        </IconButton>
-      </Box>
+      {/* DELETE */}
+      <IconButton
+        disabled={disabled}
+        onClick={onDelete}
+        sx={{ height: 56 }}
+      >
+        <DeleteOutlineOutlined />
+      </IconButton>
+
     </Stack>
   );
 };
 
-const OrderDetails = ({ items, onChangeItem, onDeleteItem }) => (
-  <Box>
-    {items.map((item, index) => (
-      <OrderItem
-        key={item.id}
-        item={item}
-        onChange={(updated) => onChangeItem(index, updated)}
-        onDelete={() => onDeleteItem(index)}
-        showDelete={items.length > 1}
-      />
-    ))}
+/* =========================
+   ORDER DETAILS
+========================= */
+const OrderDetails = ({
+  items = [],
+  tiposVidrio = [],
+  onChangeItem,
+  onDeleteItem,
+  onAddItem,
+  disabled = false
+}) => {
+
+  const total = items.reduce(
+    (acc, i) => acc + (i.subtotal || 0),
+    0
+  );
+
+  return (
+    <Box>
+
+      {/* ITEMS */}
+      {items.map((item, index) => (
+        <OrderItem
+          key={item.id}
+          item={item}
+          tiposVidrio={tiposVidrio}
+          disabled={disabled}
+          onChange={(updated) =>
+            onChangeItem(index, updated)
+          }
+          onDelete={() => onDeleteItem(index)}
+        />
+      ))}
+
+{/* ADD ITEM */}
+{!disabled && (
+  <Box
+    sx={{
+      width: '100%',
+      display: 'flex',
+      justifyContent: 'flex-start',
+      mt: 2,
+    }}
+  >
+    <Button
+      startIcon={<Add />}
+      onClick={onAddItem}
+      sx={{
+        textTransform: 'capitalize',
+        background: 'transparent',
+        boxShadow: 'none',
+        p: 0,
+        minWidth: 'auto',
+        color: '#2e7d32',
+        '& .MuiButton-startIcon': {
+          color: '#2e7d32',
+        },
+        '&:hover': {
+          background: 'transparent',
+          textDecoration: 'underline',
+        },
+      }}
+    >
+      Agregar item
+    </Button>
   </Box>
-);
+)}
+
+      {/* TOTAL */}
+      <Box
+        sx={{
+          mt: 3,
+          display: 'flex',
+          justifyContent: 'flex-end',
+          fontWeight: 700,
+          fontSize: 18
+        }}
+      >
+        Total: S/ {total.toFixed(2)}
+      </Box>
+
+    </Box>
+  );
+};
 
 export default OrderDetails;

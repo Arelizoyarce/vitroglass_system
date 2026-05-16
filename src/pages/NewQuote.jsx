@@ -1,153 +1,384 @@
-import React, { useState } from 'react';
-import { Box, Typography, Stack, Grid, Button, TextField } from '@mui/material';
+import React, { useEffect, useMemo, useState } from 'react';
+
+import {
+  Box,
+  Typography,
+  Stack,
+  Grid,
+  Button,
+  TextField,
+  MenuItem
+} from '@mui/material';
+
+import { useParams } from 'react-router-dom';
+
+import DownloadIcon from '@mui/icons-material/GetApp';
+
 import UserMenu from 'src/components/UserMenu';
 import QuoteInfo from 'src/components/QuoteInfo';
 import OrderDetails from 'src/components/OrderDetails';
-import AddIcon from '@mui/icons-material/Add';
-import DownloadIcon from '@mui/icons-material/GetApp';
 
+import {
+  createCotizacion,
+  getTiposVidrio,
+  getCotizacionById,
+  updateEstadoCotizacion
+} from 'src/services/cotizacion.service';
+
+import {
+  buscarClientesPorNombre,
+  crearCliente
+} from 'src/services/cliente.service';
+
+/* =========================
+   ITEM INIT
+========================= */
 const newItem = () => ({
-  id: Date.now(),
-  tipo: '',
+  id: Date.now() + Math.random(),
+  idTipoVidrio: '',
+  descripcionProducto: '',
   cantidad: '',
   alto: '',
   ancho: '',
-  precio: 0,
+  precioUnitario: 0,
+  subtotal: 0,
 });
 
+const estados = [
+  'COTIZADO',
+  'EN PROCESO',
+  'COMPLETADO',
+  'CANCELADO'
+];
+
 const NewQuote = () => {
+
+  const { idQuotation } = useParams();
+  const isEditMode = Boolean(idQuotation);
+
+  /* =========================
+     STATES
+  ========================= */
+  const [clientesEncontrados, setClientesEncontrados] = useState([]);
+
+  const [cliente, setCliente] = useState({
+    idCliente: null,
+    nombres: '',
+    apellidos: '',
+    telefono: '',
+    correoElectronico: '',
+    direccion: '',
+    tipoCliente: '',
+  });
+
+  const [tiposVidrio, setTiposVidrio] = useState([]);
   const [items, setItems] = useState([newItem()]);
+  const [loading, setLoading] = useState(false);
 
-  const handleChangeItem = (index, updated) => {
-    setItems((prev) => prev.map((item, i) => (i === index ? updated : item)));
+  const [estadoCotizacion, setEstadoCotizacion] = useState('COTIZADO');
+  const [estadoInicial, setEstadoInicial] = useState('COTIZADO');
+
+  const [fechaEntrega, setFechaEntrega] = useState('');
+
+  /* =========================
+     LOAD DATA
+  ========================= */
+  useEffect(() => {
+    loadTiposVidrio();
+
+    if (idQuotation) {
+      loadCotizacion();
+    }
+  }, [idQuotation]);
+
+  const loadTiposVidrio = async () => {
+    const data = await getTiposVidrio();
+    setTiposVidrio(data);
   };
 
-  const handleAddItem = () => {
-    setItems((prev) => [...prev, newItem()]);
+  const loadCotizacion = async () => {
+    const data = await getCotizacionById(idQuotation);
+    if (!data) return;
+
+    setCliente({
+      idCliente: data.cliente?.idCliente || null,
+      nombres: data.cliente?.nombres || '',
+      apellidos: data.cliente?.apellidos || '',
+      telefono: data.cliente?.telefono || '',
+      correoElectronico: data.cliente?.correoElectronico || '',
+      direccion: data.cliente?.direccion || '',
+      tipoCliente: data.cliente?.tipoCliente || '',
+    });
+
+    setEstadoCotizacion(data.estado || 'COTIZADO');
+    setEstadoInicial(data.estado || 'COTIZADO');
+    setFechaEntrega(data.fechaEntrega || '');
+
+    const detalles = data.detalleCotizaciones?.map((detalle) => ({
+      id: Date.now() + Math.random(),
+      idTipoVidrio: detalle.tipoVidrio.idTipoVidrio,
+      descripcionProducto: detalle.descripcionProducto,
+      cantidad: detalle.cantidad,
+      ancho: Number(detalle.anchoMetros) * 100,
+      alto: Number(detalle.altoMetros) * 100,
+      precioUnitario: detalle.precioUnitario,
+      subtotal:
+        Number(detalle.cantidad) *
+        Number(detalle.precioUnitario) *
+        Number(detalle.anchoMetros) *
+        Number(detalle.altoMetros),
+    })) || [];
+
+    setItems(detalles);
   };
 
-  const handleDeleteItem = (index) => {
-    setItems((prev) => prev.filter((_, i) => i !== index));
+  /* =========================
+     DETECT CHANGES
+  ========================= */
+  const estadoCambio = estadoInicial !== estadoCotizacion;
+
+  const requiereFechaEntrega = estadoCotizacion === 'EN PROCESO';
+
+  const fechaValida =
+    !requiereFechaEntrega || (fechaEntrega && fechaEntrega.trim() !== '');
+
+  const puedeActualizar =
+    isEditMode &&
+    estadoCambio &&
+    fechaValida &&
+    !loading;
+
+  const bloquearFechaEntrega = !requiereFechaEntrega;
+
+  /* =========================
+     SAVE / UPDATE
+  ========================= */
+  const handleGuardarCotizacion = async () => {
+    try {
+      setLoading(true);
+
+      let idCliente = cliente.idCliente;
+
+      if (!idCliente) {
+        const nuevo = await crearCliente(cliente);
+        idCliente = nuevo.idCliente;
+      }
+
+      const payload = {
+        idCliente,
+        idUsuario: 1,
+        estado: estadoCotizacion,
+        fechaEntrega,
+        detalles: items.map((item) => ({
+          idTipoVidrio: Number(item.idTipoVidrio),
+          descripcionProducto: item.descripcionProducto,
+          anchoMetros: Number(item.ancho) / 100,
+          altoMetros: Number(item.alto) / 100,
+          cantidad: Number(item.cantidad),
+          precioUnitario: Number(item.precioUnitario),
+        })),
+      };
+
+      await createCotizacion(payload);
+      alert('Cotización creada correctamente');
+
+    } catch (error) {
+      console.error(error);
+      alert('Error al guardar');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const subtotal = items.reduce((sum, item) => sum + (item.precio || 0), 0);
+  const handleActualizarCotizacion = async () => {
+    try {
+      setLoading(true);
 
+      const fecha =
+        estadoCotizacion === 'EN PROCESO'
+          ? fechaEntrega
+          : null;
+
+      await updateEstadoCotizacion(
+        idQuotation,
+        estadoCotizacion,
+        fecha
+      );
+
+      alert('Actualizado correctamente');
+
+      setEstadoInicial(estadoCotizacion);
+
+    } catch (error) {
+      console.error(error);
+      alert('Error al actualizar');
+    } finally {
+      setLoading(false);
+    }
+  };
+const handleBuscarCliente = async (nombre) => {
+  if (!nombre || nombre.trim().length < 2) {
+    setClientesEncontrados([]);
+    return;
+  }
+
+  try {
+    const data = await buscarClientesPorNombre(nombre);
+    setClientesEncontrados(data);
+  } catch (error) {
+    console.error('ERROR BUSCANDO CLIENTES:', error);
+  }
+};
+
+const handleChangeItem = (index, updated) => {
+  const newItems = [...items];
+  newItems[index] = updated;
+  setItems(newItems);
+};
+
+const handleDeleteItem = (index) => {
+  const newItems = items.filter((_, i) => i !== index);
+  setItems(newItems);
+};
+
+const handleAddItem = () => {
+  setItems([
+    ...items,
+    {
+      id: Date.now() + Math.random(),
+      idTipoVidrio: '',
+      cantidad: '',
+      alto: '',
+      ancho: '',
+      precioUnitario: 0,
+      subtotal: 0,
+    }
+  ]);
+};
+  /* =========================
+     RENDER
+  ========================= */
   return (
-    <Box sx={{ width: '100%', maxWidth: '1200px', margin: '0 auto', px: { xs: 2, md: 4 }, py: 4 }}>
+    <Box sx={{ width: '100%', maxWidth: 1200, mx: 'auto', p: 3 }}>
 
-      <Stack direction="row"  alignItems="center" sx={{ mb: 4, justifyContent: 'space-between' }}>
-        <Typography variant="h4" sx={{ fontWeight: 700 }}>Cotización</Typography>
-        <UserMenu />
+      {/* HEADER */}
+      <Stack
+        direction="row"
+        justifyContent="space-between"
+        alignItems="center"
+        sx={{ mb: 4 }}
+      >
+        <Typography variant="h4" fontWeight={700}>
+          {isEditMode ? 'Detalle Cotización' : 'Cotización'}
+        </Typography>
+
+        <Stack direction="row" spacing={2} alignItems="center">
+
+          {isEditMode && (
+            <TextField
+              select
+              size="small"
+              label="Estado"
+              value={estadoCotizacion}
+              onChange={(e) => setEstadoCotizacion(e.target.value)}
+              sx={{ minWidth: 180 }}
+            >
+              {estados.map((e) => (
+                <MenuItem key={e} value={e}>{e}</MenuItem>
+              ))}
+            </TextField>
+          )}
+
+          <UserMenu />
+        </Stack>
       </Stack>
 
+      {/* CLIENTE + ENTREGA */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
+
         <Grid item xs={12} md={8}>
-          <Box sx={{ bgcolor: '#fff', p: 4, borderRadius: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', height: '100%' }}>
-            <QuoteInfo />
+          <Box sx={{ p: 3, bgcolor: '#fff', borderRadius: 3 }}>
+            <QuoteInfo
+  cliente={cliente}
+  onChange={setCliente}
+  clientesEncontrados={clientesEncontrados}
+  onBuscarCliente={handleBuscarCliente}
+/>
           </Box>
         </Grid>
+
         <Grid item xs={12} md={4}>
-          <Box sx={{ bgcolor: '#fff', p: 4, borderRadius: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', height: '100%', width: '100%', textAlign: 'left' }}>
-            <Typography sx={{ fontWeight: 700, fontSize: '1rem', mb: 3, textAlign: 'center' }}>
+          <Box sx={{ p: 3, bgcolor: '#fff', borderRadius: 3 }}>
+
+            <Typography fontWeight={700} mb={2}>
               Información de entrega
             </Typography>
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', mb: 1 }}>
-                Fecha de registro
-              </Typography>
-              <TextField
-                fullWidth
-                value="14 Abr 2022"
-                InputProps={{ readOnly: true }}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px', bgcolor: '#fafafa' } }}
-              />
-            </Box>
-            <Box>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', mb: 1 }}>
-                Fecha de entrega
-              </Typography>
-              <TextField
-                fullWidth
-                value="20 Abr 2022"
-                InputProps={{ readOnly: true }}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px', bgcolor: '#fafafa' } }}
-              />
-            </Box>
+
+            <TextField
+              fullWidth
+              disabled
+              value={new Date().toLocaleDateString()}
+              sx={{ mb: 2 }}
+            />
+
+            <TextField
+              fullWidth
+              type="date"
+              disabled={bloquearFechaEntrega}
+              value={fechaEntrega}
+              onChange={(e) => setFechaEntrega(e.target.value)}
+            />
+
           </Box>
         </Grid>
+
       </Grid>
 
-      <Box sx={{ bgcolor: '#fff', borderRadius: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', p: 4, mb: 3 }}>
-        <Typography sx={{ fontWeight: 700, fontSize: '1rem', textAlign: 'center', mb: 3 }}>
+      {/* DETALLE */}
+      <Box sx={{ p: 3, bgcolor: '#fff', borderRadius: 3, mb: 3 }}>
+        <Typography fontWeight={700} textAlign="center" mb={2}>
           Detalle de pedido
         </Typography>
 
-        <OrderDetails
-          items={items}
-          onChangeItem={handleChangeItem}
-          onDeleteItem={handleDeleteItem}
-        />
-
-        <Stack
-          direction="row"
-          sx={{ mt: 3, pt: 2.5, borderTop: '1px solid #f0f0f0', justifyContent: 'space-between' }}
-        >
-          <Button
-            startIcon={<AddIcon />}
-            onClick={handleAddItem}
-            sx={{
-              color: '#2E7D32',
-              textTransform: 'none',
-              fontWeight: 600,
-              fontSize: '0.95rem',
-              px: 1,
-              '&:hover': { bgcolor: 'rgba(46,125,50,0.06)' },
-            }}
-          >
-            Agregar Item
-          </Button>
-
-          <Box sx={{ mr: 8}}>
-            <Stack direction="row" justifyContent="space-between" spacing={8}>
-              <Typography sx={{ color: '#888', fontSize: '0.9rem' }}>Total</Typography>
-              <Typography sx={{ fontWeight: 700 }}>S/ {subtotal.toFixed(2)}</Typography>
-            </Stack>
-          </Box>
-        </Stack>
+<OrderDetails
+  items={items}
+  tiposVidrio={tiposVidrio}
+  onChangeItem={handleChangeItem}
+  onDeleteItem={handleDeleteItem}
+  onAddItem={handleAddItem}
+  disabled={isEditMode}
+/>
       </Box>
 
-      <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 2 }}>
-        <Button
-          variant="contained"
-          sx={{
-            bgcolor: '#38A169',
-            px: 6,
-            py: 1.5,
-            borderRadius: '10px',
-            textTransform: 'none',
-            fontWeight: 600,
-            '&:hover': { bgcolor: '#2F855A' },
-          }}
-        >
-          Cotizar
-        </Button>
-        <Button
-          variant="outlined"
-          startIcon={<DownloadIcon />}
-          sx={{
-            color: '#555',
-            borderColor: '#ddd',
-            px: 4,
-            py: 1.5,
-            borderRadius: '10px',
-            textTransform: 'none',
-            fontWeight: 500,
-            '&:hover': { borderColor: '#bbb', bgcolor: '#fafafa' },
-          }}
-        >
-          Descargar Detalle
-        </Button>
+      {/* BOTONES */}
+      <Stack direction="row" justifyContent="center" spacing={2}>
+
+        {!isEditMode ? (
+          <Button
+            variant="contained"
+            onClick={handleGuardarCotizacion}
+            disabled={loading}
+          >
+            Cotizar
+          </Button>
+        ) : (
+          <Button
+            variant="contained"
+            onClick={handleActualizarCotizacion}
+            disabled={!puedeActualizar}
+          >
+            Actualizar
+          </Button>
+        )}
+
+        {estadoCotizacion === 'COTIZADO' && (
+          <Button variant="outlined" startIcon={<DownloadIcon />}>
+            Descargar
+          </Button>
+        )}
+
       </Stack>
+
     </Box>
   );
 };

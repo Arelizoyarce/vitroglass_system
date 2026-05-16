@@ -40,6 +40,10 @@ function App() {
       >
         <Route path="/pedidos" element={<Dashboard />} />
         <Route path="/nueva-cotizacion" element={<NewQuote />} />
+        <Route
+  path="/nueva-cotizacion/:idQuotation"
+  element={<NewQuote />}
+/>
       </Route>
     </Routes>
   );

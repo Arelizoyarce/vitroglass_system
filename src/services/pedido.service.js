@@ -3,7 +3,7 @@ import axios from "axios";
 const API_URL = "http://localhost:8080/api/pedidos";
 
 export const getPedidos = async () => {
-  const res = await axios.get(API_URL);
+  const res = await axios.get(`${API_URL}/dashboard`);
   return res.data;
 };
 
