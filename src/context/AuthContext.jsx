@@ -15,11 +15,16 @@ export const AuthProvider = ({ children }) => {
   const loginUser = (data) => {
     setUser(data);
     localStorage.setItem("user", JSON.stringify(data));
+    // Guardar token por separado para el interceptor de axios
+    if (data.token) {
+      localStorage.setItem("token", data.token);
+    }
   };
 
   const logoutUser = () => {
     setUser(null);
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
   };
 
   return (

@@ -231,7 +231,19 @@ const OrderDetails = ({
           fontSize: 18
         }}
       >
-        Total: S/ {total.toFixed(2)}
+        Subtotal: {total.toFixed(2)}
+      </Box>
+            <Box
+        sx={{
+          mt: 3,
+          display: 'flex',
+          justifyContent: 'flex-end',
+          fontWeight: 700,
+          fontSize: 18
+        }}
+      >
+        
+Total +IGV: S/ {(total + (total * 0.18)).toFixed(2)}
       </Box>
 
     </Box>

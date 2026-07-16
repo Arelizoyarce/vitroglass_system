@@ -7,6 +7,11 @@ export const getPedidos = async () => {
   return res.data;
 };
 
+export const getAllPedidos = async () => {
+  const res = await axios.get(`${API_URL}/admin/dashboard`);
+  return res.data;
+};
+
 export const getPedidoById = async (id) => {
   const res = await axios.get(`${API_URL}/${id}`);
   return res.data;

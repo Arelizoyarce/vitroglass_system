@@ -12,25 +12,20 @@ function Login() {
   const [correo, setCorreo] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = async () => {
+const handleLogin = async () => {
     try {
+        const data = await login(correo, password);
+        loginUser(data);
 
-      const data = await login(correo, password);
-
-
-      loginUser(data);
-
-  
-
-      navigate("/pedidos");
-
-    
-
+        if (data.rol === "ADMIN") {
+            navigate("/admin/pedidos");
+        } else {
+            navigate("/pedidos");
+        }
     } catch (error) {
-    
-      alert("Credenciales incorrectas o error del servidor");
+        alert("Credenciales incorrectas o error del servidor");
     }
-  };
+};
 
   return (
     <Grid container alignItems="stretch">
